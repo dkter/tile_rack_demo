@@ -3,6 +3,7 @@
 use ggez::graphics::Color;
 use ggez::graphics::Drawable;
 use mint::Point2;
+use itertools::Itertools;
 
 const TILE_WIDTH: f32 = 50.0;
 const TILE_HEIGHT: f32 = 50.0;
@@ -210,7 +211,7 @@ impl ggez::graphics::Drawable for TileRack {
         ctx: &mut ggez::Context,
         param: ggez::graphics::DrawParam,
     ) -> ggez::GameResult {
-        for tile in self.tiles.iter() {
+        for tile in self.tiles.iter().sorted_by_key(|t| t.dragging) {
             ggez::graphics::draw(ctx, tile, ggez::graphics::DrawParam::default())?;
         }
         Ok(())
