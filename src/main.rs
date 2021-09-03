@@ -161,7 +161,7 @@ impl TileRack {
             }
         ).collect();
 
-        for ((index, tile), new_x) in self.tiles.iter_mut().enumerate().zip(new_tile_x_positions) {
+        for (tile, new_x) in self.tiles.iter_mut().zip(new_tile_x_positions) {
             if !tile.dragging {
                 let tile_y = self.y;
 
