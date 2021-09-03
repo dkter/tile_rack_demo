@@ -125,6 +125,17 @@ impl TileRack {
         ).next()
     }
 
+    fn get_new_tile_index(&self, x: f32) -> usize {
+        let tile_position = (x - self.x + (TILE_WIDTH / 2.0)) / (TILE_WIDTH + TILE_SPACING);
+        if tile_position < 0.0 {
+            0 as usize
+        } else if tile_position > (self.size - 1) as f32 {
+            self.size - 1
+        } else {
+            tile_position as usize
+        }
+    }
+
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         // rust
         let maybe_dragging_index_x = if let Some((dragging_index, dragging_tile)) = self.get_dragging_tile() {
@@ -132,21 +143,29 @@ impl TileRack {
         } else {
             None
         };
-        for (index, tile) in self.tiles.iter_mut().enumerate() {
-            if !tile.dragging {
-                let mut tile_x = self.x + (index as f32) * (TILE_WIDTH + TILE_SPACING);
-                let tile_y = self.y;
 
-                if let Some((dragging_index, dragging_x)) = maybe_dragging_index_x {
-                    if dragging_x > tile_x && dragging_index < index {
-                        tile_x -= TILE_WIDTH + TILE_SPACING;
-                    }
-                    else if dragging_x < tile_x + TILE_SPACING && dragging_index > index {
+        let new_tile_x_positions: Vec<f32> = (0..self.size).map(
+            |index| {
+                let mut tile_x = self.x + (index as f32) * (TILE_WIDTH + TILE_SPACING);
+                if let Some((dragging_initial_index, dragging_x)) = maybe_dragging_index_x {
+                    // new_index is the index that the tile would get if it were to be dropped now
+                    let new_index = self.get_new_tile_index(dragging_x);
+                    if new_index <= index && index <= dragging_initial_index {
                         tile_x += TILE_WIDTH + TILE_SPACING;
                     }
+                    else if dragging_initial_index <= index && index <= new_index {
+                        tile_x -= TILE_WIDTH + TILE_SPACING;
+                    }
                 }
+                tile_x
+            }
+        ).collect();
 
-                tile.set_pos(tile_x, tile_y);
+        for ((index, tile), new_x) in self.tiles.iter_mut().enumerate().zip(new_tile_x_positions) {
+            if !tile.dragging {
+                let tile_y = self.y;
+
+                tile.set_pos(new_x, tile_y);
             }
         }
         Ok(())
@@ -262,19 +281,16 @@ impl ggez::event::EventHandler<ggez::GameError> for State {
     ) {
         if button == ggez::input::mouse::MouseButton::Left {
             // assume there is only one tile being dragged
-            if let Some((index, tile)) = self.rack.get_dragging_tile_mut() {
+            let maybe_dragging_index_x = if let Some((index, tile)) = self.rack.get_dragging_tile_mut() {
                 tile.dragging = false;
-
-                let tile_position = (tile.x - self.rack.x) / (TILE_WIDTH + TILE_SPACING);
-                let tile_position = if tile_position < 0.0 {
-                    0 as usize
-                } else if tile_position > (self.rack.size - 1) as f32 {
-                    self.rack.size - 1
-                } else {
-                    tile_position as usize
-                };
+                Some((index, tile.x))
+            } else {
+                None
+            };
+            if let Some((index, tile_x)) = maybe_dragging_index_x {
+                let new_index = self.rack.get_new_tile_index(tile_x);
                 let tile_deref = self.rack.tiles.remove(index);
-                self.rack.tiles.insert(tile_position, tile_deref);
+                self.rack.tiles.insert(new_index, tile_deref);
             }
         }
     }
