@@ -8,6 +8,7 @@ const TILE_WIDTH: f32 = 50.0;
 const TILE_HEIGHT: f32 = 50.0;
 const TILE_SPACING: f32 = 10.0;
 const TILE_COLOUR: Color = Color::new(0.9, 0.9, 0.9, 1.0);
+const ANIMATION_STEPS: i32 = 100;
 
 struct Tile {
     x: f32,
@@ -17,6 +18,9 @@ struct Tile {
     dragging: bool,
     relative_x_click: Option<f32>,
     relative_y_click: Option<f32>,
+    animation_progress: i32,
+    x_animation_step: Option<f32>,
+    y_animation_step: Option<f32>,
 }
 
 impl Tile {
@@ -29,6 +33,9 @@ impl Tile {
             dragging: false,
             relative_x_click: None,
             relative_y_click: None,
+            animation_progress: 0,
+            x_animation_step: None,
+            y_animation_step: None,
         }
     }
 
@@ -163,9 +170,34 @@ impl TileRack {
 
         for (tile, new_x) in self.tiles.iter_mut().zip(new_tile_x_positions) {
             if !tile.dragging {
-                let tile_y = self.y;
+                let new_y = self.y;
 
-                tile.set_pos(new_x, tile_y);
+                let (anim_x, anim_y) = if ANIMATION_STEPS != 0 {
+                    if tile.x == new_x && tile.y == new_y || tile.animation_progress >= ANIMATION_STEPS {
+                        tile.x_animation_step = None;
+                        tile.y_animation_step = None;
+                        tile.animation_progress = 0;
+                        (new_x, new_y)
+                    }
+                    else {
+                        let x_animation_step = match tile.x_animation_step {
+                            Some(s) => s,
+                            None => (new_x - tile.x) / ANIMATION_STEPS as f32,
+                        };
+                        let y_animation_step = match tile.y_animation_step {
+                            Some(s) => s,
+                            None => (new_y - tile.y) / ANIMATION_STEPS as f32,
+                        };
+                        tile.x_animation_step = Some(x_animation_step);
+                        tile.y_animation_step = Some(y_animation_step);
+                        tile.animation_progress += 1;
+                        (tile.x + x_animation_step, tile.y + y_animation_step)
+                    }
+                } else {
+                    (new_x, new_y)
+                };
+
+                tile.set_pos(anim_x, anim_y);
             }
         }
         Ok(())
@@ -218,7 +250,10 @@ impl State {
 
 impl ggez::event::EventHandler<ggez::GameError> for State {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        self.rack.update(ctx)
+        while ggez::timer::check_update_time(ctx, 500) {
+            self.rack.update(ctx)?;
+        }
+        Ok(())
     }
 
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
