@@ -235,22 +235,20 @@ impl ggez::event::EventHandler<ggez::GameError> for State {
         y: f32,
     ) {
         // Check if mouse event was within the bounds of the rack
-        if let Some(bounds) = self.rack.dimensions(ctx) {
+        let click_point = Point2{x, y};
+        if let Some(rack_bounds) = self.rack.dimensions(ctx) {
             if button == ggez::input::mouse::MouseButton::Left
-                && bounds.contains(Point2{x, y})
+                && rack_bounds.contains(click_point)
             {
                 let tile_position = ((x - self.rack.x) / (TILE_WIDTH + TILE_SPACING)) as usize;
-                let tile_right_edge_with_spacing = self.rack.x + (TILE_WIDTH + TILE_SPACING) * tile_position as f32;
-                if tile_right_edge_with_spacing - TILE_SPACING < x
-                    && x < tile_right_edge_with_spacing
-                {
-                    // User clicked on the tile spacing
-                    return ()
-                }
                 let tile = &mut self.rack.tiles[tile_position];
-                tile.dragging = true;
-                tile.relative_x_click = Some(x - tile.x);
-                tile.relative_y_click = Some(y - tile.y);
+                if let Some(tile_bounds) = tile.dimensions(ctx) {
+                    if tile_bounds.contains(click_point) {
+                        tile.dragging = true;
+                        tile.relative_x_click = Some(x - tile.x);
+                        tile.relative_y_click = Some(y - tile.y);
+                    }
+                }
             }
         }
     }
