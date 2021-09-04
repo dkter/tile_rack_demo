@@ -1,0 +1,1 @@
+This is a small proof of concept app demonstrating how to draw/render a Scrabble-style tile rack. This uses [ggez](https://github.com/ggez/ggez) as a graphics library. To build and run the app, simply `cargo run`.
