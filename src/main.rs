@@ -56,13 +56,13 @@ impl ggez::graphics::Drawable for Tile {
             self.x, self.y,
             TILE_WIDTH, TILE_HEIGHT,
         );
-        let drawable = ggez::graphics::Mesh::new_rectangle(
+        let rect_drawable = ggez::graphics::Mesh::new_rectangle(
             ctx,
             ggez::graphics::DrawMode::fill(),
             rect,
             TILE_COLOUR,
         )?;
-        ggez::graphics::draw(ctx, &drawable, ggez::graphics::DrawParam::default())?;
+        ggez::graphics::draw(ctx, &rect_drawable, ggez::graphics::DrawParam::default())?;
 
         let font = ggez::graphics::Font::default();
         let text = ggez::graphics::Text::new((self.letter, font, 24.0));
@@ -211,6 +211,7 @@ impl ggez::graphics::Drawable for TileRack {
         ctx: &mut ggez::Context,
         param: ggez::graphics::DrawParam,
     ) -> ggez::GameResult {
+        // Sort by t.dragging to make sure the tile being dragged gets drawn last (i.e. on top)
         for tile in self.tiles.iter().sorted_by_key(|t| t.dragging) {
             ggez::graphics::draw(ctx, tile, ggez::graphics::DrawParam::default())?;
         }
@@ -270,14 +271,14 @@ impl ggez::event::EventHandler<ggez::GameError> for State {
         x: f32,
         y: f32,
     ) {
-        // Check if mouse event was within the bounds of the rack
-        let click_point = Point2{x, y};
-        if let Some(rack_bounds) = self.rack.dimensions(ctx) {
-            if button == ggez::input::mouse::MouseButton::Left
-                && rack_bounds.contains(click_point)
-            {
-                let tile_position = ((x - self.rack.x) / (TILE_WIDTH + TILE_SPACING)) as usize;
+        if button == ggez::input::mouse::MouseButton::Left {
+            let click_point = Point2{x, y};
+            // Approximate tile position (doesn't take into account y position, spacing or
+            // coordinates to the left/right of the tile rack)
+            let tile_position = ((x - self.rack.x) / (TILE_WIDTH + TILE_SPACING)) as usize;
+            if tile_position <= self.rack.size - 1 {
                 let tile = &mut self.rack.tiles[tile_position];
+                // Check if mouse event was actually within the bounds of the tile
                 if let Some(tile_bounds) = tile.dimensions(ctx) {
                     if tile_bounds.contains(click_point) {
                         tile.dragging = true;
