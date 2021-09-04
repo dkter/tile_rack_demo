@@ -331,10 +331,21 @@ impl ggez::event::EventHandler<ggez::GameError> for State {
 }
 
 fn main() {
-    let conf = ggez::conf::Conf::new();
+    let conf = ggez::conf::Conf {
+        window_setup: ggez::conf::WindowSetup {
+            title: "Tile rack demo".to_owned(),
+            samples: ggez::conf::NumSamples::One,
+            vsync: true,
+            icon: "".to_owned(),
+            srgb: true,
+        },
+        window_mode: ggez::conf::WindowMode::default(),
+        backend: ggez::conf::Backend::default(),
+        modules: ggez::conf::ModuleConf::default(),
+    };
     let window_width = conf.window_mode.width;
     let window_height = conf.window_mode.height;
-    let (ctx, event_loop) = ggez::ContextBuilder::new("tile_rack_ggez", "david")
+    let (ctx, event_loop) = ggez::ContextBuilder::new("tile_rack_demo", "david")
         .default_conf(conf)
         .build()
         .unwrap();
