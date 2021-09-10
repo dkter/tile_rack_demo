@@ -1,5 +1,6 @@
 #![allow(unused_variables)]
 
+use std::env;
 use ggez::graphics::Color;
 use ggez::graphics::Drawable;
 use mint::Point2;
@@ -332,6 +333,12 @@ impl ggez::event::EventHandler<ggez::GameError> for State {
 }
 
 fn main() {
+    let mut args: Vec<String> = env::args().collect();
+    let rack_str = match args.get(1) {
+        Some(arg) => args.remove(1),
+        None => "AEINRST".to_owned(),
+    };
+
     let conf = ggez::conf::Conf {
         window_setup: ggez::conf::WindowSetup {
             title: "Tile rack demo".to_owned(),
@@ -351,13 +358,13 @@ fn main() {
         .build()
         .unwrap();
 
-    let rack_width = (TILE_WIDTH + TILE_SPACING) * 7.0 - TILE_SPACING;
+    let rack_width = (TILE_WIDTH + TILE_SPACING) * (rack_str.len() as f32) - TILE_SPACING;
     let rack_height = TILE_HEIGHT;
 
     let state = State::new(
         window_width / 2.0 - rack_width / 2.0,
         window_height / 2.0 - rack_height / 2.0,
-        &"AEINRST",
+        rack_str.as_str(),
     );
     ggez::event::run(ctx, event_loop, state);
 }
